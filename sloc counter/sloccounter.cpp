@@ -4,8 +4,9 @@
 
 int main(int argc, char* argv[]){
     unsigned long long sloc = 0;
+    
     if (argc < 2){
-        std::cerr << "Usage: ./sloccounter .[file extention]\n Use ./sloccounter .* to process all files" << std::endl;
+        std::cerr << "Usage: ./sloccounter [filename]\n Example: ./sloccounter main.cpp" << std::endl;
         return -1;
     }
     std::cout << "Processing files:" << argv[1] << std::endl;
@@ -18,15 +19,14 @@ int main(int argc, char* argv[]){
         return -1;
     }
     std::string line = "";
+    
     while(getline(inputFile, line)){
+        
         if (line.length() > 1){
             sloc++;
             line = "";
         }
     }
     std::cout << "Counted:" << sloc << " single lines of code" << std::endl;
-
-
-
     return 0;
 }
