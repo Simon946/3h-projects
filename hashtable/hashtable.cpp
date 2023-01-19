@@ -14,7 +14,6 @@ template <typename Type> class HashItem{
 
 template <class Type> class HashTable{
     public:
-        size_t size = 0; //size is the number of elements
         void insert(std::string key, Type value);
         void remove(std::string key);
         Type get(std::string key);
