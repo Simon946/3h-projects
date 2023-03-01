@@ -12,3 +12,6 @@ SLOC counter:
 
 ChangeLowerUpper:
 Takes an ASCII string and converts the uppercase letters to lowercase and vice versa
+
+Base64:
+binary (8 bit) to base64 (6 bit) encoding. Used in websites and email 
