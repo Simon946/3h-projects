@@ -1,6 +1,7 @@
 #include <iostream>
 #include <set>
 #include <string>
+#include "colorize.cpp"
 
 using namespace std;
 
@@ -21,7 +22,7 @@ void ignoreSpaces(){
 }
 
 
-void printSet(set<string> set);
+string setToString(set<string> set);
 set<string> inputSet();
 
 
@@ -31,7 +32,7 @@ class SetExpr{
         SetExpr(set<string> value);
         ~SetExpr();
         SetExpr* calculate();
-        void print();
+        string toString();
         SetExpr* lhs = nullptr;
         ExprType operand = CONSTANT;
         SetExpr* rhs = nullptr;        
@@ -229,17 +230,17 @@ SetExpr* SetExpr::calculate(){
     return nullptr;
 }
 
-void SetExpr::print(){
+string SetExpr::toString(){
+    string str;
 
     if(this->operand == CONSTANT){
-        printSet(this->value);
-        return;
+        return setToString(this->value);
     }
     if(this->operand == COMPLEMENT){
-        cout << "complement( ";
-        this->complement->print();
-        cout << " )";
-        return;
+        str = "complement( ";
+        str.append(this->complement->toString());
+        str.append(" )");
+        return str;
     }
     string operand = "?";
     switch (this->operand){
@@ -257,24 +258,30 @@ void SetExpr::print(){
         }
         default:{
             cerr << "unknown operand: " << this->operand;
-            return;
+            return "";
         }
     }
-    this->lhs->print();
-    cout << " " << operand << " ";
-    this->rhs->print();
+    str = this->lhs->toString();
+    str.append(" ");
+    str.append(operand);
+    str.append(" ");
+    str.append(this->rhs->toString());
+    return str;
 }
 
-void printSet(set<string> set){
-    cout << "{";  
+string setToString(set<string> set){
+    string str = "{";  
     
     for(string s : set){
-        cout << s << ", "; 
+        str.append(s);
+        str.append(", "); 
     }
     if(!set.empty()){
-        cout << "\b\b"; //remove the ", "
+        str.pop_back();
+        str.pop_back();
     }
-    cout << '}';
+    str.push_back('}');
+    return str;
 }
 
 set<string> inputSet(){
@@ -313,8 +320,11 @@ int main(){
         return -1;
     }
     cout << "The input is parsed as: ";
-    exp->print();
+    string str = exp->toString();
+
+    coloredPrint(exp->toString(), 0, 1);
+
     cout << "\n the result should be: " << endl;
-    exp->calculate()->print();
+    coloredPrint(exp->calculate()->toString(), 0, 1);
     cout << endl;
 }
