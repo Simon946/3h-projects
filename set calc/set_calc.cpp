@@ -141,8 +141,6 @@ SetExpr* load(){
             else if(operand == '^'){
                 int power = 1;
                 cin >> power;
-                assert(power >= 1);
-
                 SetExpr* base = lhs;
 
                 while(power > 1){
@@ -274,7 +272,20 @@ SetExpr* calculateMultiply(SetExpr* lhs, SetExpr* rhs){
     for(string start : lhs->value){
 
         for(string end : rhs->value){
-            result.insert(start.append(end));
+            result.insert(start + end);
+        }
+    }
+    return new SetExpr(result);
+}
+
+SetExpr* filterLength(SetExpr* exp, int maxLength){
+    assert(exp->operand == CONSTANT);
+
+    set<string>result;
+
+    for(string s : exp->value){
+        if(s.length() <= maxLength){
+            result.insert(s);
         }
     }
     return new SetExpr(result);
@@ -377,7 +388,12 @@ string setToString(set<string> set){
     string str = "{";  
     
     for(string s : set){
-        str.append(s);
+        if(s.empty()){
+            str.append("lambda");
+        }
+        else{
+            str.append(s);
+        }
         str.append(", "); 
     }
     if(!set.empty()){
@@ -409,9 +425,13 @@ set<string> inputSet(){
             }
             cin >> c;
         }
-        if(!s.empty()){
-           set.insert(s);
+        if(s == "lambda"){
+            set.insert("");
         }
+        else{
+            set.insert(s);
+        }
+        
     }
     return set;
 }
@@ -428,10 +448,13 @@ int main(){
     cout << endl;
     
     SetExpr* result = exp->calculate();
+    SetExpr* trimmed = filterLength(result, 4);
+
     cout << "The result should be: ";
-    coloredPrint(result->toString(), 0, 1);
+    coloredPrint(trimmed->toString(), 0, 1);
     cout << endl;
     delete exp;
     delete result;
+    delete trimmed;
     return 0;
 }
