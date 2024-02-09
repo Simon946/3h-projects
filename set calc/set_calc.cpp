@@ -1,6 +1,7 @@
 #include <iostream>
 #include <set>
 #include <string>
+#include <assert.h>
 #include "colorize.cpp"
 
 using namespace std;
@@ -10,7 +11,8 @@ enum ExprType {
     INTERSECT, //all elements in lhs and rhs
     COMPLEMENT, //all elements, except those in this->complement. This does not apply to this->lhs or this->rhs but to this->complement
     DIFFERENCE, //all elements in lhs but not in rhs and vice versa 
-    CONSTANT //the expression is constant aka a single set. no need to calculate further.
+    CONSTANT, //the expression is constant aka a single set. no need to calculate further.
+    MULTIPLY, //concatenate all elements in rhs to lhs.
 };
 
 void ignoreSpaces(){
@@ -28,6 +30,7 @@ class SetExpr{
     public:
         SetExpr(SetExpr* lhs, ExprType operand, SetExpr* rhs);
         SetExpr(set<string> value);
+        SetExpr(const SetExpr& other);
         ~SetExpr();
         SetExpr* calculate();
         string toString();
@@ -43,6 +46,7 @@ class SetExpr{
 SetExpr* calculateUnion(SetExpr* lhs, SetExpr* rhs);
 SetExpr* calculateIntersect(SetExpr* lhs, SetExpr* rhs);
 SetExpr* calculateDifference(SetExpr* lhs, SetExpr* rhs);
+SetExpr* calculateMultiply(SetExpr* lhs, SetExpr* rhs);
 
 SetExpr::SetExpr(SetExpr* lhs, ExprType operand, SetExpr* rhs){
     this->lhs = lhs;
@@ -65,6 +69,36 @@ SetExpr::SetExpr(set<string> constant){
     this->value = constant;
 }
 
+SetExpr::SetExpr(const SetExpr& other){
+
+    this->lhs = nullptr;
+    this->rhs = nullptr;
+    this->complement = nullptr;
+
+    switch (other.operand){
+        case UNION:
+        case INTERSECT:
+        case DIFFERENCE:{
+            this->lhs = new SetExpr(*other.lhs);
+            this->rhs = new SetExpr(*other.rhs);
+            break;
+        }
+        case CONSTANT:{
+            break;
+        }
+        case COMPLEMENT:{
+            this->complement = new SetExpr(*other.complement);
+            break;
+        }       
+        default:{
+            cerr << "unknown operand while copying SetExpr" << endl;
+            break;
+        }
+    }
+    this->value = other.value;
+    this->operand = other.operand;
+}
+
 SetExpr* load(){
     ignoreSpaces();
     char c = cin.peek();
@@ -78,6 +112,7 @@ SetExpr* load(){
     switch (c){
         case '{':
             return new SetExpr(inputSet());
+
         case '(':{
             cin >> c;
 
@@ -96,6 +131,27 @@ SetExpr* load(){
             }
             else if(operand == 'D'){
                 type = DIFFERENCE;
+            }
+            else if(operand == ')'){
+                return lhs;
+            }
+            else if(operand == '*'){
+                type = MULTIPLY;
+            }
+            else if(operand == '^'){
+                int power = 1;
+                cin >> power;
+                assert(power >= 1);
+
+                SetExpr* base = lhs;
+
+                while(power > 1){
+                    base = new SetExpr(base, MULTIPLY, new SetExpr(*lhs));
+                    power--;
+                }
+                ignoreSpaces();
+                cin.ignore(1);
+                return base;
             }
             else{
                 cerr << "unexpected operand: " << operand << endl;
@@ -117,13 +173,20 @@ SetExpr* load(){
 }
 
 SetExpr::~SetExpr(){
-    delete lhs;
-    delete rhs;
+    
+    if(this->operand == COMPLEMENT){
+        delete complement;
+    }
+    else{
+        delete lhs;
+        delete rhs;
+    }
+    
 }
 
 SetExpr* calculateUnion(SetExpr* lhs, SetExpr* rhs){
 
-    if(lhs->operand != COMPLEMENT && rhs->operand != COMPLEMENT){
+    if(lhs->operand == CONSTANT && rhs->operand == CONSTANT){
         set<string> unionSet = lhs->value;
 
         for(string s : rhs->value){
@@ -136,18 +199,20 @@ SetExpr* calculateUnion(SetExpr* lhs, SetExpr* rhs){
         SetExpr* inverseUnion = calculateUnion(lhs->complement, rhs->complement);
         return new SetExpr(inverseUnion, COMPLEMENT, inverseUnion);
     }
-    SetExpr* complement = lhs;
-    SetExpr* other = rhs;
+    SetExpr* complement = new SetExpr(*lhs);
+    SetExpr* other = new SetExpr(*rhs);
 
     if(rhs->operand == COMPLEMENT){
         swap(complement, other);
     }
-    return calculateDifference(complement->complement, other);
+    SetExpr* inverseIntersect = calculateIntersect(complement->complement, other);
+    SetExpr* inverseDifference = calculateDifference(complement->complement, inverseIntersect);
+    return new SetExpr(inverseDifference, COMPLEMENT, inverseDifference);
 }
 
 SetExpr* calculateIntersect(SetExpr* lhs, SetExpr* rhs){
 
-    if(lhs->operand != COMPLEMENT && rhs->operand != COMPLEMENT){
+    if(lhs->operand == CONSTANT && rhs->operand == CONSTANT){
         set<string> intersectSet;
             
         for(string s : rhs->value){
@@ -161,18 +226,19 @@ SetExpr* calculateIntersect(SetExpr* lhs, SetExpr* rhs){
         SetExpr* inverseUnion = calculateUnion(lhs->complement, rhs->complement);
         return new SetExpr(inverseUnion, COMPLEMENT, inverseUnion);
     }
-    SetExpr* complement = lhs;
-    SetExpr* other = rhs;
+    SetExpr* complement = new SetExpr(*lhs);
+    SetExpr* other = new SetExpr(*rhs);
 
     if(rhs->operand == COMPLEMENT){
         swap(complement, other);
     }
+
     return calculateDifference(complement->complement, other);
 }
 
 SetExpr* calculateDifference(SetExpr* lhs, SetExpr* rhs){
 
-    if(lhs->operand != COMPLEMENT && rhs->operand != COMPLEMENT){
+    if(lhs->operand == CONSTANT && rhs->operand == CONSTANT){
         set<string> differenceSet;
             
         for(string s : rhs->value){
@@ -190,8 +256,8 @@ SetExpr* calculateDifference(SetExpr* lhs, SetExpr* rhs){
     if(lhs->operand == COMPLEMENT && rhs->operand == COMPLEMENT){
         return calculateDifference(lhs->complement, rhs->complement);
     }
-    SetExpr* complement = lhs;
-    SetExpr* other = rhs;
+    SetExpr* complement = new SetExpr(*lhs);
+    SetExpr* other = new SetExpr(*rhs);
 
     if(rhs->operand == COMPLEMENT){
         swap(complement, other);
@@ -200,36 +266,66 @@ SetExpr* calculateDifference(SetExpr* lhs, SetExpr* rhs){
     return new SetExpr(inverseDifference, COMPLEMENT, inverseDifference);   
 }
 
+SetExpr* calculateMultiply(SetExpr* lhs, SetExpr* rhs){
+    assert(lhs->operand == CONSTANT && rhs->operand == CONSTANT);
+
+    set<string> result;
+
+    for(string start : lhs->value){
+
+        for(string end : rhs->value){
+            result.insert(start.append(end));
+        }
+    }
+    return new SetExpr(result);
+}
+
 SetExpr* SetExpr::calculate(){
     
     if(this->operand == CONSTANT){
-        return this;
+        return new SetExpr(this->value);
+    }
+    if(this->operand == COMPLEMENT){
+        if(this->complement->operand == COMPLEMENT){
+            return new SetExpr(*this->complement->complement);//double complement
+        }
+        return new SetExpr(*this);//best I can do
     }
 
     SetExpr* lhs = this->lhs->calculate();
     SetExpr* rhs = this->rhs->calculate();
 
+    SetExpr* result = nullptr;
+
     switch (this->operand){
         case UNION:{
-            return calculateUnion(lhs, rhs);
+            result = calculateUnion(lhs, rhs);
+            break;
         }
         case INTERSECT:{
-            return calculateIntersect(lhs, rhs);
-        }
-        case COMPLEMENT:{
-            if(lhs->operand == COMPLEMENT){
-                return lhs->complement;//double complement
-            }
-            return this;//best I can do
+            result = calculateIntersect(lhs, rhs);
+            break;
         }
         case DIFFERENCE:{
-            return calculateDifference(lhs, rhs);
+            result = calculateDifference(lhs, rhs);
+            break;
+        }
+        case MULTIPLY:{
+            result = calculateMultiply(lhs, rhs);
+            break;
         }
     default:
         cerr << "unknown operand: " << this->operand;
         break;
     }
-    return nullptr;
+    if(result == nullptr){
+        return new SetExpr(*this);
+    }
+    delete lhs;
+    delete rhs;
+    SetExpr* tmp = result->calculate();
+    delete result;
+    return tmp;
 }
 
 string SetExpr::toString(){
@@ -258,16 +354,22 @@ string SetExpr::toString(){
             operand = "difference";
             break;
         }
+        case MULTIPLY:{
+            operand = "multiply";
+            break;
+        }
         default:{
             cerr << "unknown operand: " << this->operand;
             return "";
         }
     }
-    str = this->lhs->toString();
+    str.append("(");
+    str.append(this->lhs->toString());
     str.append(" ");
     str.append(operand);
     str.append(" ");
     str.append(this->rhs->toString());
+    str.append(")");
     return str;
 }
 
@@ -326,9 +428,10 @@ int main(){
     cout << endl;
     
     SetExpr* result = exp->calculate();
-    cout << "The result should be: " << endl;
+    cout << "The result should be: ";
     coloredPrint(result->toString(), 0, 1);
     cout << endl;
     delete exp;
     delete result;
+    return 0;
 }
