@@ -6,11 +6,11 @@
 using namespace std;
 
 enum ExprType {
-    UNION,
-    INTERSECT,
-    COMPLEMENT,//applies to lhs only
-    DIFFERENCE,
-    CONSTANT//applies to value only
+    UNION,     //all elements in lhs or rhs
+    INTERSECT, //all elements in lhs and rhs
+    COMPLEMENT, //all elements, except those in this->complement. This does not apply to this->lhs or this->rhs but to this->complement
+    DIFFERENCE, //all elements in lhs but not in rhs and vice versa 
+    CONSTANT //the expression is constant aka a single set. no need to calculate further.
 };
 
 void ignoreSpaces(){
@@ -21,10 +21,8 @@ void ignoreSpaces(){
     }
 }
 
-
 string setToString(set<string> set);
 set<string> inputSet();
-
 
 class SetExpr{
     public:
@@ -33,6 +31,8 @@ class SetExpr{
         ~SetExpr();
         SetExpr* calculate();
         string toString();
+
+
         SetExpr* lhs = nullptr;
         ExprType operand = CONSTANT;
         SetExpr* rhs = nullptr;        
@@ -51,17 +51,16 @@ SetExpr::SetExpr(SetExpr* lhs, ExprType operand, SetExpr* rhs){
 
     if(operand == COMPLEMENT){
         if(lhs != rhs){
-            cerr << "lhs must be rhs when the SetExpr is complement";
-            
+            cerr << "lhs must be rhs when the SetExpr is complement" << endl;   
         }
         this->complement = lhs;
     }
     if(operand == CONSTANT){
-        cerr << "cannot create new constatn like this";
+        cerr << "cannot create new constant like this" << endl;
     }
 }
 
-SetExpr::SetExpr(set<string> constant){
+SetExpr::SetExpr(set<string>& constant){
     this->operand = CONSTANT;
     this->value = constant;
 }
@@ -83,9 +82,9 @@ SetExpr* load(){
             cin >> c;
 
             SetExpr* lhs = load();
-            char operand;
-
             ignoreSpaces();
+            
+            char operand;
             cin >> operand;
             ExprType type;
 
@@ -98,6 +97,9 @@ SetExpr* load(){
             else if(operand == 'D'){
                 type = DIFFERENCE;
             }
+            else{
+                cerr << "unexpected operand: " << operand << endl;
+            }
             SetExpr* rhs = load();
             ignoreSpaces();
             
@@ -108,7 +110,7 @@ SetExpr* load(){
             return new SetExpr(lhs, type, rhs); 
         }
         default:
-            cerr << "unexpected character: " << c << endl;
+            cerr << "unexpected character: " << c <<  " expected ( or {" << endl;
             break;
     }
     return nullptr;
@@ -320,11 +322,13 @@ int main(){
         return -1;
     }
     cout << "The input is parsed as: ";
-    string str = exp->toString();
-
     coloredPrint(exp->toString(), 0, 1);
-
-    cout << "\n the result should be: " << endl;
-    coloredPrint(exp->calculate()->toString(), 0, 1);
     cout << endl;
+    
+    SetExpr* result = exp->calculate();
+    cout << "The result should be: " << endl;
+    coloredPrint(result->toString(), 0, 1);
+    cout << endl;
+    delete exp;
+    delete result;
 }
