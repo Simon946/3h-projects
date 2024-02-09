@@ -27,7 +27,7 @@ set<string> inputSet();
 class SetExpr{
     public:
         SetExpr(SetExpr* lhs, ExprType operand, SetExpr* rhs);
-        SetExpr(set<string> value);
+        SetExpr(set<string>& value);
         ~SetExpr();
         SetExpr* calculate();
         string toString();
