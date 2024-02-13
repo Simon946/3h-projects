@@ -38,7 +38,7 @@ bool State::isAccepted(string s, queue<Transition>& workQueue, stack<Transition>
     }
 
     for(Transition t : transitions){
-        if(t.label == s.front()){
+        if(t.label == s.front() || t.label == 0x0){//empty labels allowed for lambda transitions.
             workQueue.push(t);
         }
     }
@@ -101,7 +101,7 @@ void inputTransitions(vector<State*> states){
     char c;
 
     do{
-        cout << "enter a transition rule in the form A -b> C (meaning from state A to state C with label b)";
+        cout << "enter a transition rule in the form A -b> C (meaning from state A to state C with label b), use A -> B for lambda transition: ";
         string stateName;
         cin >> stateName;
         cout << "read statename as: " << stateName << endl;
@@ -124,11 +124,20 @@ void inputTransitions(vector<State*> states){
             cerr << "expected a:-" << endl;
         }
         cin >> t.label;
-        cin >> c;
         
-        if(c != '>'){
-            cerr << "expected a:>" << endl;
+        if(t.label == '>'){
+            t.label = 0x0;
         }
+        else{
+            cin >> c;
+        
+            if(c != '>'){
+                cerr << "expected a:>" << endl;
+            }
+        }
+
+
+        
         cin >> stateName;
         
         
