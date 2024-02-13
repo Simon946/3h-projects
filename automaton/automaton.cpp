@@ -87,7 +87,7 @@ bool isDeterministic(vector<State*> states){
 
         for(Transition t : s->transitions){
             
-            if(labels.count(t.label) == 0){
+            if(labels.count(t.label) == 0 || t.label == 0x0){
                 return false;
             }
         }
