@@ -14,4 +14,10 @@ ChangeLowerUpper:
 Takes an ASCII string and converts the uppercase letters to lowercase and vice versa
 
 Base64:
-binary (8 bit) to base64 (6 bit) encoding. Used in websites and email 
+Binary (8 bit) to base64 (6 bit) encoding. Used in websites and email 
+
+SetCalc:
+Do calculations with sets (union, intersect, difference, complement, multiplication and exponent) The sets are set<string>
+
+Automaton:
+A finite atomaton that can check if a string is accepted by a language using transitions between states with labels. Breadth first search is applied to look for a final state.
