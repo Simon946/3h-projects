@@ -21,3 +21,6 @@ Do calculations with sets (union, intersect, difference, complement, multiplicat
 
 Automaton:
 A finite atomaton that can check if a string is accepted by a language using transitions between states with labels. Breadth first search is applied to look for a final state.
+
+Brainfuck:
+Brainfuck is a very simple programming language. The interpreter is very basic, but it attempts to reduce linear search for square brackets by using a call stack and a map.
